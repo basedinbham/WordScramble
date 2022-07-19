@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingError = false
     
+    @State private var score = 0
     
     var body: some View {
         NavigationView {
@@ -24,7 +25,6 @@ struct ContentView: View {
                     TextField("Enter your word", text: $newWord)
                         .autocapitalization(.none)
                 }
-                
                 Section {
                     ForEach(usedWords, id: \.self) { word in
                         HStack {
@@ -44,6 +44,18 @@ struct ContentView: View {
             } message: {
                 Text(errorMessage)
             }
+            .toolbar {
+                Button("New Game", action: startGame)
+            }
+            // safeAreaInset() lets us inset the safe area of our view and place some content in the remaining space.
+            .safeAreaInset(edge: .bottom) {
+                Text("Score: \(score)")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.blue)
+                    .foregroundColor(.white)
+                    .font(.title)
+            }
         }
     }
     
@@ -51,7 +63,15 @@ struct ContentView: View {
         // lowercase and trim the word, to make sure we don't add duplicate words with case differences
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         // isEmpty is more efficent, but the below code will allow minimum character count
-        guard answer.count > 0 else { return }
+        guard answer.count > 3 else {
+            wordError(title: "Word too short", message: "Words must be at least four letters long.")
+            return
+        }
+        
+        guard answer != rootWord else {
+            wordError(title: "Nice try...", message: "You can't use your starting word!")
+            return
+        }
         
         guard isOriginal(word: answer) else {
             wordError(title: "Word used already", message: "Be more original")
@@ -72,9 +92,14 @@ struct ContentView: View {
             usedWords.insert(answer, at: 0)
         }
         newWord = ""
+        score += answer.count
     }
     
     func startGame() {
+        newWord = ""
+        usedWords.removeAll()
+        score = 0
+        
         // 1. Find the URL for start.txt in our app bundle
         if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
             // 2. Load start.txt into a string
